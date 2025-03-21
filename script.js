@@ -18,7 +18,7 @@ const preDefinedResponses = {
     "hi": "Hello there!",
     "hello": "Hey there!",
     "how are you": "I am fine, thank you. How can I help?",
-    "who are you": "I am just a very basic simulation, not a real AI.",
+    "who are you": "I am just a very basic chatbot, not a real AI. PlingifyPlug have another services called InstonomoAI which is a paid AI",
     "bye": "Goodbye, See you soon!",
     "help": "I can try my best to help! what do you need?",
     "tell me about javascript": "Javascript is a very popular scripting language used on many websites!",
