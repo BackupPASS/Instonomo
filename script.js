@@ -306,9 +306,9 @@ function checkSpeed() {
             endTime = new Date().getTime();
             var duration = (endTime - startTime) / 1000; // seconds
             var fileSize = xhr.response.size / 1024 / 1024; // MB
-            var speedMbps = (fileSize * 8) / duration; // Mbps
+            var speedMbps = (fileSize * 2) / duration; // Mbps
 
-            if (speedMbps < 10) {
+            if (speedMbps < 2) {
                 window.location.href = 'https://backuppass.github.io/Slow-Wifi';
             }
         };
