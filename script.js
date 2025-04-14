@@ -367,7 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (banExpiry && new Date().getTime() < parseInt(banExpiry)) {
 
-        window.location.href = 'https://backuppass.github.io/Pass-Banning-System-Token.InstonomoAI.2025//';
+        window.location.href = 'https://backuppass.github.io/PlingifyPlug-AntiMalware-Banning-System-Token.InstonomoAI.2025/';
         return;
     } else if (banExpiry) {
         setCookie('banExpiry', "", -1)
@@ -378,13 +378,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     accessTimes = accessTimes.filter(time => currentTime - time < 60000);
 
-    if (accessTimes.length >= 5) {
-        const banDuration = 60 * 1000;
-        const banEndTime = new Date().getTime() + banDuration;
-        setCookie('banExpiry', banEndTime, 1 / 1440);
-        console.log("Ban triggered!");
-    }
-
+if (accessTimes.length >= 5) {
+    const banDuration = 5 * 60 * 1000; 
+    const banEndTime = new Date().getTime() + banDuration;
+    setCookie('banExpiry', banEndTime, 5 / 1440); 
+    console.log("Ban triggered!");
+}
     accessTimes.push(currentTime);
     localStorage.setItem('accessTimes', JSON.stringify(accessTimes));
     console.log("Access recorded at:", currentTime, "Current Access Times:", accessTimes);
