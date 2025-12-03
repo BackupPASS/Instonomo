@@ -1,68 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-        integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <title>Instonomo ChatBot</title>
+  <meta charset="UTF-8" />
+  <title>Server Downtime — PlingifyPlug</title>
+  <link rel="icon" href="PlingifyPlugLogo.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
-    <div id="loading-screen">
-        <svg class="pl" width="240" height="240" viewBox="0 0 240 240">
-            <circle class="pl__ring pl__ring--a" cx="120" cy="120" r="105" fill="none" stroke="#000" stroke-width="20"
-                stroke-dasharray="0 660" stroke-dashoffset="-330" stroke-linecap="round"></circle>
-            <circle class="pl__ring pl__ring--b" cx="120" cy="120" r="35" fill="none" stroke="#000" stroke-width="20"
-                stroke-dasharray="0 220" stroke-dashoffset="-110" stroke-linecap="round"></circle>
-            <circle class="pl__ring pl__ring--c" cx="85" cy="120" r="70" fill="none" stroke="#000" stroke-width="20"
-                stroke-dasharray="0 440" stroke-linecap="round"></circle>
-            <circle class="pl__ring pl__ring--d" cx="155" cy="120" r="70" fill="none" stroke="#000" stroke-width="20"
-                stroke-dasharray="0 440" stroke-linecap="round"></circle>
-        </svg>
+<div class="shade"></div>
+
+  <div class="wrap">
+    <div class="card" id="downtime-card">
+      <h1>Server Downtime</h1>
+      <div class="subtitle">This page is temporarily unavailable.</div>
+
+      <div class="pill-row">
+        <span class="pill danger">Status: Offline</span>
+        <span class="pill">Reason: Due to site re-design</span>
+        <span class="pill mono" id="last-check">Last check: just now</span>
+      </div>
+
+      <div class="body-text">
+        We're currently working on a new experience for this page using KilencoUI.
+        While we update the design, this part of the site is offline.
+      </div>
+
+      <ul class="clean">
+        <li>• Your data and apps will be re-set.</li>
+        <li>• Access will return once the re-design is complete.</li>
+        <li>• You can still view live system information on the Status Centre.</li>
+      </ul>
+
+      <div class="actions">
+        <a class="btn" href="https://backuppass.github.io/Status/">
+          Open Status Centre
+        </a>
+        <a class="btn ghost" href="https://backuppass.github.io/Product-Centre/">
+          Back to Product Centre
+        </a>
+        <button class="btn ghost" id="retry-btn">
+          Retry
+        </button>
+      </div>
+
+      <div class="small">
+        If this downtime page appears for a long time, please check the Status Centre
+        or contact support via <span class="mono">PlingifyPlug.com/Contact-Us</span> when available.
+      </div>
     </div>
-    <div id="welcome-screen" style="display: none;">
-        <div class="welcome-content">
-            <h1 style="font-family: Alba; color: #fff;">Welcome to Instonomo ChatBot</h1>
-            <p>Here's how to get started:</p>
-            <ul>
-                <li>Type your questions in the text box and press enter.</li>
-                <li>Click the mic button to speak your questions.</li>
-                <li>Press the speaker button to mute or unmute audio</li>
+  </div>
 
-            </ul>
-            <button id="close-welcome" style="color:#fff;">Let's Chat</button>
-        </div>
-    </div>
+  <div class="footer">
+    © 2025 PlingifyPlug. All rights reserved. |
+    <a href="https://plingifyplug.com/">PlingifyPlug</a> |
+    <a href="https://plingifyplug.com/contact-us">Support</a> |
+    <a href="https://plingifyplug.com/privacy">Privacy Policy</a> |
+    <a href="https://backuppass.github.io/Product-Centre/">Product-Centre</a>
+  </div>
 
-    <header>
-        <h1>InstonomoChatBot</h1>
-    </header>
-    <div class="container-fluid">
-        <div id="app-container">
-            <div id="chat-output">
-
-            </div>
-            <div class="input-container">
-                <input type="text" id="text-input" placeholder="Type here to start a chat.">
-                <button id="enter-button"><i class="fas fa-arrow-right"></i></button>
-            </div>
-            <div class="button-bar">
-                <button id="mic-button"><i class="fas fa-microphone"></i></button>
-                <button id="mute-button"><i class="fas fa-volume-up"></i></button>
-                <button id="theme-button"><i class="fas fa-sun"></i></button>
-            </div>
-        </div>
-    </div>
-
-    <div class="footer">
-        <p>© 2025 PlingifyPlug. All rights reserved. | <a href="https://plingifyplug.com/">PlingifyPlug</a> | <a href="https://plingifyplug.com/contact-us">Support</a> | <a href="https://plingifyplug.com/privacy">Privacy Policy</a> | <a href="https://backuppass.github.io/Product-Centre/">Product-Centre</a></p>
-    </div>
-
-    <script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
-
 </html>
