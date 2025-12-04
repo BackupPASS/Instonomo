@@ -83,7 +83,11 @@ const ABUSE_WORDS = [
   "wanker",
   "bastard",
   "dickhead",
-  "prick"
+  "prick",
+  "nigger",
+  "coon",
+  "kill your self",
+  "whore",
 ];
 
 const MAX_WARNINGS_BEFORE_FINAL = 2;
@@ -105,7 +109,7 @@ function showDeviceBannedScreen() {
   } catch (e) {
     console.warn("Error cancelling speech:", e);
   }
-  document.body.innerHTML = "Device Banned. Please contact support to appeal this decision.";
+  document.body.innerHTML = "PlingifyPlug AntiMalware has decided to ban this device, you cannot appeal or reverse this decision. <br><br>If you believe this is an error, please contact PlingifyPlug support with your device ID:<br><br><b>" + deviceId + "</b>" + "<br><br> This device has been banned due to repeated violations of the Instonomo policy.";
   document.body.style = "margin:20px;font-family:system-ui, sans-serif;background:#ffffff;color:#000000;";
   document.documentElement.style = "margin:0;padding:0;background:#ffffff;";
 }
