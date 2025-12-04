@@ -1,3 +1,26 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  collection,
+  addDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyASVwoxjL0ZHSF6kOIxGOMks1A-9NllUMw",
+  authDomain: "plingifyplug.firebaseapp.com",
+  projectId: "plingifyplug",
+  storageBucket: "plingifyplug.firebasestorage.app",
+  messagingSenderId: "198551817496",
+  appId: "1:198551817496:web:e7d84490321637448a226d",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
 const chatOutput = document.getElementById('chat-output');
 const textInput = document.getElementById("text-input");
 const micButton = document.getElementById('mic-button');
@@ -74,31 +97,161 @@ function getOrCreateDeviceId() {
 
 const deviceId = getOrCreateDeviceId();
 
-const ABUSE_WORDS = [
-  "fuck",
-  "shit",
-  "bitch",
-  "cunt",
-  "twat",
-  "wanker",
-  "bastard",
-  "dickhead",
-  "prick",
-  "nigger",
-  "coon",
-  "kill your self",
-  "whore",
+/* ------------------ ABUSE PATTERNS WITH TAGS ------------------ */
+/*
+  Each entry has:
+  - tag: category (e.g. "racism", "insult", "sexual", "self-harm", "spam")
+  - words: list of words/phrases that map to that tag
+*/
+const ABUSE_PATTERNS = [
+  {
+    tag: "racism",
+    words: [
+      "nigger",
+      "coon",
+      "paki",
+      "chink",
+      "spic"
+    ]
+  },
+  {
+    tag: "sexual",
+    words: [
+      "whore",
+      "slag",
+      "slut"
+    ]
+  },
+  {
+    tag: "insult",
+    words: [
+      "fuck",
+      "shit",
+      "bitch",
+      "cunt",
+      "twat",
+      "wanker",
+      "bastard",
+      "dickhead",
+      "prick",
+      "idiot",
+      "moron",
+      "retard",
+      "loser"
+    ]
+  },
+  {
+    tag: "self-harm",
+    words: [
+      "kill your self",
+      "kill yourself",
+      "kys",
+      "go die"
+    ]
+  },
+  {
+    tag: "spam",
+    words: [
+      "free money",
+      "click here",
+      "visit this link",
+      "win a prize",
+      "claim your reward"
+    ]
+  }
 ];
 
-const MAX_WARNINGS_BEFORE_FINAL = 2;
-const BAN_AFTER_STRIKE = 4;
+const MAX_WARNINGS_BEFORE_FINAL = 2; // 1 + 2 = warnings, 3 = final warning
+const BAN_AFTER_STRIKE = 4;         // 4th = ban
+
+// Returns an array of tags that apply to this message (e.g. ["racism","insult"])
+function getAbuseTags(normalizedInput) {
+  if (!normalizedInput) return [];
+
+  const tags = new Set();
+
+  // keyword-based categories
+  for (const pattern of ABUSE_PATTERNS) {
+    for (const word of pattern.words) {
+      const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`\\b${escaped}\\b`, "i");
+      if (regex.test(normalizedInput)) {
+        tags.add(pattern.tag);
+        break; // no need to check other words for this tag
+      }
+    }
+  }
+
+  // extra simple spam heuristic: lots of URLs in one message
+  const urlMatches = normalizedInput.match(/https?:\/\/[^\s]+/gi);
+  if (urlMatches && urlMatches.length >= 3) {
+    tags.add("spam");
+  }
+
+  return Array.from(tags);
+}
 
 function messageHasAbuse(normalizedInput) {
-  if (!normalizedInput) return false;
-  return ABUSE_WORDS.some(word => {
-    const pattern = new RegExp(`\\b${word}\\b`, "i");
-    return pattern.test(normalizedInput);
-  });
+  return getAbuseTags(normalizedInput).length > 0;
+}
+
+// Get device moderation state from Firestore
+async function fetchDeviceState() {
+  try {
+    const ref = doc(db, "instonomo_devices", deviceId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      return { banned: false, strikes: 0 };
+    }
+    const data = snap.data() || {};
+    return {
+      banned: !!data.banned,
+      strikes: typeof data.strikes === "number" ? data.strikes : 0
+    };
+  } catch (e) {
+    console.warn("Failed to fetch device state from Firestore:", e);
+    // fallback: treat as not banned if we can't read
+    return { banned: false, strikes: 0 };
+  }
+}
+
+// Update device moderation state in Firestore
+async function updateDeviceState(banned, strikes, lastTags = []) {
+  try {
+    const ref = doc(db, "instonomo_devices", deviceId);
+    await setDoc(
+      ref,
+      {
+        deviceId,
+        banned: !!banned,
+        strikes: typeof strikes === "number" ? strikes : 0,
+        lastTags: Array.isArray(lastTags) ? lastTags : [],
+        updatedAt: serverTimestamp()
+      },
+      { merge: true }
+    );
+  } catch (e) {
+    console.warn("Failed to update device state in Firestore:", e);
+  }
+}
+
+// Log an abusive message into Firestore so staff can see it later
+async function logAbuseMessage(originalInput, normalizedInput, strikes, willBan, tags) {
+  try {
+    const deviceRef = doc(db, "instonomo_devices", deviceId);
+    const logsCol = collection(deviceRef, "abuseLogs");
+    await addDoc(logsCol, {
+      deviceId,
+      text: originalInput,
+      normalized: normalizedInput,
+      strikes: strikes,
+      bannedAfterThis: !!willBan,
+      tags: Array.isArray(tags) ? tags : [],
+      createdAt: serverTimestamp()
+    });
+  } catch (e) {
+    console.warn("Failed to log abuse message to Firestore:", e);
+  }
 }
 
 function showDeviceBannedScreen() {
@@ -109,36 +262,65 @@ function showDeviceBannedScreen() {
   } catch (e) {
     console.warn("Error cancelling speech:", e);
   }
-  document.body.innerHTML = "PlingifyPlug AntiMalware has decided to ban this device, you cannot appeal or reverse this decision. <br><br>If you believe this is an error, please contact PlingifyPlug support with your device ID:<br><br><b>" + deviceId + "</b>" + "<br><br> This device has been banned due to repeated violations of the Instonomo policy.";
+
+  document.body.innerHTML =
+    "PlingifyPlug AntiMalware has decided to ban this device. " +
+    "You cannot use Instonomo on this device right now.<br><br>" +
+    "If you believe this is an error, please contact PlingifyPlug support with your device ID below.<br><br>" +
+    "<b>Device ID:</b><br>" + deviceId + "<br><br>" +
+    "This device has been banned due to repeated violations of the Instonomo policy.";
+
   document.body.style = "margin:20px;font-family:system-ui, sans-serif;background:#ffffff;color:#000000;";
   document.documentElement.style = "margin:0;padding:0;background:#ffffff;";
 }
 
-function enforceAbusePolicy(normalizedInput) {
-  const alreadyBanned = getFromAnyStorage("instonomo_device_banned") === "true";
-  if (alreadyBanned) {
+// MAIN moderation logic – Firebase-backed + tags
+async function enforceAbusePolicy(originalInput, normalizedInput) {
+  // 1) Check current state from Firestore
+  let { banned, strikes } = await fetchDeviceState();
+
+  if (banned) {
     showDeviceBannedScreen();
     return { blocked: true, message: null };
   }
-  if (!messageHasAbuse(normalizedInput)) {
+
+  // 2) Figure out which tags (if any) apply
+  const tags = getAbuseTags(normalizedInput);
+
+  // No tags => no abuse
+  if (!tags.length) {
     return { blocked: false, message: null };
   }
-  let strikes = parseInt(getFromAnyStorage("instonomo_strikes") || "0", 10);
-  if (isNaN(strikes)) strikes = 0;
-  strikes += 1;
-  setInAllStorages("instonomo_strikes", String(strikes));
+
+  // 3) Abusive – increase strikes, decide what to do
+  strikes = (strikes || 0) + 1;
+  let message = null;
+  let willBan = false;
+
   if (strikes <= MAX_WARNINGS_BEFORE_FINAL) {
-    const msg = `Please don’t use rude or offensive language. This is warning ${strikes} of 3.`;
-    return { blocked: true, message: msg };
+    message = `Please don’t use rude or offensive language. This is warning ${strikes} of 3.`;
+  } else if (strikes === MAX_WARNINGS_BEFORE_FINAL + 1) {
+    message = "This is your final warning. One more offensive message and this device will be banned from Instonomo on this site.";
+  } else if (strikes >= BAN_AFTER_STRIKE) {
+    banned = true;
+    willBan = true;
   }
-  if (strikes === MAX_WARNINGS_BEFORE_FINAL + 1) {
-    const msg = "This is your final warning. One more offensive message and this device will be banned from Instonomo on this site.";
-    return { blocked: true, message: msg };
+
+  // 4) Log the abusive message for staff review (with tags)
+  await logAbuseMessage(originalInput, normalizedInput, strikes, willBan, tags);
+
+  // 5) Store updated state in Firestore (include lastTags)
+  await updateDeviceState(banned, strikes, tags);
+
+  if (banned && willBan) {
+    showDeviceBannedScreen();
+    return { blocked: true, message: null };
   }
-  setInAllStorages("instonomo_device_banned", "true");
-  showDeviceBannedScreen();
-  return { blocked: true, message: null };
+
+  return { blocked: true, message };
 }
+
+/* ------------------ REST OF YOUR CHATBOT CODE (UNCHANGED) ------------------ */
 
 const preDefinedResponses = {
   "yo": "Hey! What’s up?",
@@ -174,7 +356,7 @@ const preDefinedResponses = {
   "are you sentient": "Not even close! I’m not self-aware, but I do my best to chat.",
   "are you human": "Nope! 100% digital.",
   "do you think": "Thinking might be a stretch, but I can match patterns like a pro.",
-  "i'm sad": "I’m really sorry to hear that. I’m here if you want to talk about it 💙",
+  "i'm sad": "I’m really sorry you’re feeling that way. I’m here if you want to talk about it 💙",
   "i'm happy": "That’s amazing! I’m happy for you 😊",
   "i'm bored": "We can chat, do a quick quiz, or I can tell you a joke. Your call!",
   "i'm tired": "Rest is important. Maybe take a short break or grab a drink of water.",
@@ -574,7 +756,7 @@ function handleResponse(input) {
 }
 
 function estimateResponseDelay(text) {
-  const plain = text.replace(/<[^>]*>?/gm, '');
+  const plain = text.replace(/<[^^>]*>?/gm, '');
   const base = 200;
   const perChar = 15;
   const extra = Math.min(1000, plain.length * perChar);
@@ -594,9 +776,11 @@ function speakText(text) {
   speechSynthesis.speak(utterThis);
 }
 
-function getAIResponse(input) {
+async function getAIResponse(input) {
   const normalized = normalizeInput(input);
-  const moderation = enforceAbusePolicy(normalized);
+
+  const moderation = await enforceAbusePolicy(input, normalized);
+
   if (moderation.blocked) {
     if (moderation.message) {
       const thinkingBubble = addThinkingBubble();
@@ -610,6 +794,7 @@ function getAIResponse(input) {
     }
     return;
   }
+
   const thinkingBubble = addThinkingBubble();
   const aiResponse = handleResponse(input);
   const plainResponse = aiResponse.replace(/<[^>]*>?/gm, '');
@@ -657,7 +842,7 @@ async function voiceRecordHandler() {
       recognition.onresult = function (event) {
         const userMessage = event.results[0][0].transcript;
         addChatBubble(userMessage, false);
-        getAIResponse(userMessage);
+        getAIResponse(userMessage); // async but we don't need to await
       };
       recognition.onspeechend = function () {
         micButton.classList.remove('listening');
@@ -784,12 +969,13 @@ if (btnStatus) {
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const isDeviceBanned = getFromAnyStorage("instonomo_device_banned") === "true";
-  if (isDeviceBanned) {
+document.addEventListener('DOMContentLoaded', async () => {
+  const state = await fetchDeviceState();
+  if (state.banned) {
     showDeviceBannedScreen();
     return;
   }
+
   welcomeScreen.style.display = 'none';
   setCookie('firstTime', 'false', 365);
   closeWelcomeButton.addEventListener('click', () => {
