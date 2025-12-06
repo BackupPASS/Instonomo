@@ -92,6 +92,10 @@
                 </div>
 
                 <div class="app-actions">
+                 <button id="clear-chatbot-btn" class="icon-btn" aria-label="Clear Instonomo chat">
+                    <i class="fa-solid fa-trash-can"></i>
+                 </button>
+
                   <button id="mute-button" class="icon-btn" aria-label="Mute / unmute">
                     <i class="fa-solid fa-volume-high"></i>
                   </button>
@@ -129,29 +133,51 @@
       <section id="instonomoai" class="section">
         <div class="grid">
           <div class="card col-12">
-            <h2>InstonomoAI</h2>
-            <p class="hint">
-              InstonomoAI is an advanced AI assistant by PlingifyPlug. It will offer smarter, context-aware responses with a more powerful engine than the current Instonomo chatbot. 
-            </p>
-            <p class="hint">
-              <strong>Status:</strong> Coming Soon — please continue using Instonomo for now.
-            </p>
 
-            <div style="margin-top:10px;">
-              <span class="pill ok">Planned</span>
-              <span class="pill neutral">Not yet operational</span>
+            <div id="app-container-ai" style="margin-top:16px;">
+
+              <div class="app-topbar">
+                <div class="app-title-group">
+                   <span class="app-status-dot" id="instonomoai-status-dot"></span>
+                  <div class="app-title-text">
+                    <h2 class="app-title">InstonomoAI</h2>
+                    <p class="app-subtitle">InstonomoAI • AI Assistant</p>
+                  </div>
+                </div>
+
+                <div class="app-actions">
+                 <button id="clear-ai-btn" class="icon-btn" aria-label="Clear InstonomoAI chat">
+                    <i class="fa-solid fa-trash-can"></i>
+                 </button>    
+                  <button id="mute-button-ai" class="icon-btn" aria-label="Mute / unmute InstonomoAI">
+                    <i class="fa-solid fa-volume-high"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="app-body">
+                <div id="chat-output-ai" class="chat-output"></div>
+              </div>
+
+              <div class="app-footer">
+                <div class="input-shell">
+                  <button id="mic-button-ai" class="icon-btn mic-btn" aria-label="Voice input for InstonomoAI">
+                    <i class="fa-solid fa-microphone"></i>
+                  </button>
+
+                  <input
+                    type="text"
+                    id="text-input-ai"
+                    placeholder="Ask InstonomoAI anything."
+                    autocomplete="off"
+                  />
+
+                  <button id="enter-button-ai" class="primary-btn" aria-label="Send message to InstonomoAI">
+                    <i class="fa-solid fa-paper-plane"></i>
+                  </button>
+                </div>
+              </div>
             </div>
-
-            <h3 style="margin-top:14px;">What to expect</h3>
-            <ul class="hint" style="padding-left:18px; margin:6px 0;">
-              <li>Conversational AI with deeper understanding.</li>
-              <li>Better help for tech questions, coding and troubleshooting.</li>
-              <li>Safer and smarter replies, built for PlingifyPlug products.</li>
-            </ul>
-
-            <p class="hint" style="margin-top:12px;">
-              When InstonomoAI goes live, links from this page will take you directly to the InstonomoAI experience.
-            </p>
           </div>
         </div>
       </section>
@@ -165,6 +191,6 @@
     <a href="https://plingifyplug.com/privacy">Privacy Policy</a> |
     <a href="https://backuppass.github.io/Product-Centre/">Product-Centre</a>
   </div>
-<script type="module" src="script.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
