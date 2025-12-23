@@ -6,8 +6,13 @@ import {
   setDoc,
   collection,
   addDoc,
-  serverTimestamp
+  serverTimestamp,
+  getDocs,
+  query,
+  orderBy,
+  limit
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyASVwoxjL0ZHSF6kOIxGOMks1A-9NllUMw",
@@ -230,27 +235,187 @@ async function logAbuseMessage(originalInput, normalizedInput, strikes, willBan,
   }
 }
 
-function showDeviceBannedScreen() {
-  try {
-    if (typeof speechSynthesis !== "undefined") {
-      speechSynthesis.cancel();
-    }
-  } catch (e) {
-    console.warn("Error cancelling speech:", e);
-  }
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
+function formatTs(ts) {
+  try {
+    if (ts && typeof ts.toDate === "function") return ts.toDate().toLocaleString();
+  } catch (e) {}
+  return "Unknown";
+}
+
+async function fetchRecentAbuseLogs(max = 5) {
+  try {
+    const deviceRef = doc(db, "instonomo_devices", deviceId);
+    const logsRef = collection(deviceRef, "abuseLogs");
+    const q = query(logsRef, orderBy("createdAt", "desc"), limit(max));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => d.data() || {});
+  } catch (e) {
+    console.warn("Failed to fetch abuse logs:", e);
+    return [];
+  }
+}
+
+function statusLabel(code) {
+  const c = String(code || "").toLowerCase();
+  if (c === "under_review") return "Under Review";
+  if (c === "denied") return "Appeal Denied";
+  if (c === "approved") return "Appeal Approved";
+  return "No Appeal Submitted";
+}
+
+async function submitBanAppeal(email, reason, deviceState, recentLogs) {
+  const cleanEmail = String(email || "").trim();
+  const cleanReason = String(reason || "").trim();
+
+  const appealDocRef = doc(db, "instonomo_appeals", deviceId);
+
+  await setDoc(appealDocRef, {
+    deviceId,
+    lastSubmittedAt: serverTimestamp(),
+    lastEmail: cleanEmail,
+    lastReason: cleanReason,
+    strikes: typeof deviceState?.strikes === "number" ? deviceState.strikes : 0,
+    banned: !!deviceState?.banned,
+    lastTags: Array.isArray(deviceState?.lastTags) ? deviceState.lastTags : [],
+    status: "open"
+  }, { merge: true });
+
+  const submissionsRef = collection(appealDocRef, "submissions");
+  await addDoc(submissionsRef, {
+    deviceId,
+    email: cleanEmail,
+    reason: cleanReason,
+
+    strikes: typeof deviceState?.strikes === "number" ? deviceState.strikes : 0,
+    banned: !!deviceState?.banned,
+    lastTags: Array.isArray(deviceState?.lastTags) ? deviceState.lastTags : [],
+
+    recentAbuse: Array.isArray(recentLogs)
+      ? recentLogs.map(l => ({
+          text: String(l.text || ""),
+          normalized: String(l.normalized || ""),
+          tags: Array.isArray(l.tags) ? l.tags : [],
+          createdAt: l.createdAt || null
+        }))
+      : [],
+
+    createdAt: serverTimestamp(),
+    status: "open"
+  });
+
+  const deviceRef = doc(db, "instonomo_devices", deviceId);
+  await setDoc(deviceRef, {
+    appealStatus: "under_review",
+    appealStatusText: "Under Review",
+    appealUpdatedAt: serverTimestamp()
+  }, { merge: true });
+}
+
+function showDeviceBannedScreen() {
   document.body.innerHTML =
-    "PlingifyPlug AntiMalware has decided to ban this device. " +
-    "You cannot use Instonomo on this device right now.<br><br>" +
-    "If you believe this is an error, please contact PlingifyPlug support with your device ID below.<br><br>" +
-    "<b>Device ID:</b><br>" +
-    deviceId +
-    "<br><br>" +
-    "This device has been banned due to repeated violations of the Instonomo policy.";
+    "PlingifyPlug AntiMalware has decided to ban this device.<br><br>Loading ban details…";
 
   document.body.style =
     "margin:20px;font-family:system-ui, sans-serif;background:#ffffff;color:#000000;";
   document.documentElement.style = "margin:0;padding:0;background:#ffffff;";
+
+  (async () => {
+    const state = await fetchDeviceState();
+
+    let bannedAt = null;
+    let appealStatus = "none";
+    let appealStatusText = "";
+    let lastTags = [];
+
+    try {
+      const ref = doc(db, "instonomo_devices", deviceId);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const data = snap.data() || {};
+        bannedAt = data.bannedAt || null;
+        appealStatus = data.appealStatus || "none";
+        appealStatusText = data.appealStatusText || "";
+        lastTags = Array.isArray(data.lastTags) ? data.lastTags : [];
+      }
+    } catch (e) {}
+
+    const recentLogs = await fetchRecentAbuseLogs(5);
+
+    const shownStatus = String(appealStatusText || "").trim()
+      ? String(appealStatusText).trim()
+      : statusLabel(appealStatus);
+
+    let logsHtml = "<b>Recent messages that triggered the policy:</b><br>";
+    if (!recentLogs.length) {
+      logsHtml += "No recent log entries could be loaded.<br><br>";
+    } else {
+      logsHtml += "<ul>";
+      for (const l of recentLogs) {
+        logsHtml += `<li>${escapeHtml(l.text || "(no text)")}</li>`;
+      }
+      logsHtml += "</ul><br>";
+    }
+
+    document.body.innerHTML =
+      "<b>Device banned</b><br><br>" +
+      `<b>Device ID:</b><br>${escapeHtml(deviceId)}<br><br>` +
+      `<b>Banned at:</b> ${escapeHtml(formatTs(bannedAt))}<br>` +
+      `<b>Strikes:</b> ${escapeHtml(state.strikes)}<br>` +
+      `<b>Last detected categories:</b> ${escapeHtml(lastTags.join(", ") || "None recorded")}<br>` +
+      `<b>Appeal status:</b> <span id="appeal-current-status">${escapeHtml(shownStatus)}</span><br><br>` +
+      logsHtml +
+      "<b>Appeal this ban</b><br>" +
+      "If you believe this was a mistake, submit an appeal below.<br><br>" +
+      "<label>Email<br><input id='appeal-email' type='email' placeholder='you@example.com'></label><br><br>" +
+      "<label>Reason<br><textarea id='appeal-reason' rows='6' placeholder='Explain what happened'></textarea></label><br><br>" +
+      "<button id='appeal-submit'>Submit appeal</button>" +
+      "<div id='appeal-status'></div>";
+
+    const btn = document.getElementById("appeal-submit");
+    const statusEl = document.getElementById("appeal-status");
+    const statusTextEl = document.getElementById("appeal-current-status");
+
+    btn.addEventListener("click", async () => {
+      const email = (document.getElementById("appeal-email").value || "").trim();
+      const reason = (document.getElementById("appeal-reason").value || "").trim();
+
+      if (!email || !email.includes("@")) {
+        statusEl.innerHTML = "<br>❌ Please enter a valid email address.";
+        return;
+      }
+      if (!reason || reason.length < 10) {
+        statusEl.innerHTML = "<br>❌ Please explain your reason (at least 10 characters).";
+        return;
+      }
+
+      btn.disabled = true;
+      statusEl.innerHTML = "<br>Submitting…";
+
+      try {
+        await submitBanAppeal(email, reason, {
+          banned: true,
+          strikes: state.strikes,
+          lastTags
+        }, recentLogs);
+
+        statusTextEl.textContent = "Under Review";
+        statusEl.innerHTML = "<br>✅ Appeal submitted.";
+      } catch (e) {
+        console.warn(e);
+        statusEl.innerHTML = "<br>❌ Could not submit appeal. Try again later.";
+        btn.disabled = false;
+      }
+    });
+  })();
 }
 
 async function enforceAbusePolicy(originalInput, normalizedInput) {
@@ -284,12 +449,21 @@ async function enforceAbusePolicy(originalInput, normalizedInput) {
   await updateDeviceState(banned, strikes, tags);
 
   if (banned && willBan) {
+    const ref = doc(db, "instonomo_devices", deviceId);
+    await setDoc(ref, {
+      bannedAt: serverTimestamp(),
+      appealStatus: "none",
+      appealStatusText: "No Appeal Submitted",
+      appealUpdatedAt: serverTimestamp()
+    }, { merge: true });
+
     showDeviceBannedScreen();
     return { blocked: true, message: null };
   }
 
   return { blocked: true, message };
 }
+
 
 const preDefinedResponses = {
   yo: "Hey! What’s up?",
