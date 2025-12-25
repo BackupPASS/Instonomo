@@ -1490,3 +1490,62 @@ document.addEventListener('DOMContentLoaded', async () => {
   syncInstonomoAIStatusDot();
 });
 
+function isVintiEmbed() {
+
+  if (new URLSearchParams(location.search).get("vinti") === "1") return true;
+
+  const ua = String(navigator.userAgent || "").toLowerCase();
+  if (ua.includes("vinti")) return true;
+
+  return false;
+}
+
+function applyVintiEmbedMode() {
+  if (!isVintiEmbed()) return;
+
+  document.body.classList.add("vinti-embed");
+
+  const instoSection = document.getElementById("instonomo");
+  const aiSection = document.getElementById("instonomoai");
+  const aiBtn = document.querySelector('button[data-target="instonomoai"]');
+  const instoBtn = document.querySelector('button[data-target="instonomo"]');
+
+  if (aiBtn) aiBtn.style.display = "none";
+  if (aiSection) aiSection.style.display = "none";
+
+  if (instoSection) {
+    instoSection.classList.add("active");
+  }
+  if (instoBtn) {
+    instoBtn.classList.add("active");
+  }
+
+  document.querySelectorAll(".section").forEach(s => {
+    if (s.id !== "instonomo") s.classList.remove("active");
+  });
+  document.querySelectorAll(".nav button").forEach(b => {
+    if (b.getAttribute("data-target") !== "instonomo") b.classList.remove("active");
+  });
+
+  const productBtn = document.getElementById("btn-product-centre");
+  const statusBtn = document.getElementById("btn-status");
+  if (productBtn) productBtn.style.display = "none";
+  if (statusBtn) statusBtn.style.display = "none";
+
+  document.addEventListener("click", (e) => {
+    const a = e.target?.closest?.("a");
+    if (!a) return;
+
+    const href = a.getAttribute("href") || "";
+    if (!href) return;
+
+    if (href.startsWith("#") || href.startsWith("./") || href.startsWith("/")) return;
+
+    if (href.startsWith("http://") || href.startsWith("https://")) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, true);
+}
+
+applyVintiEmbedMode();
