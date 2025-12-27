@@ -31,11 +31,16 @@ const textInput = document.getElementById("text-input");
 const micButton = document.getElementById("mic-button");
 const muteButton = document.getElementById("mute-button");
 const enterButton = document.getElementById("enter-button");
+
 const welcomeScreen = document.getElementById("welcome-screen");
 const closeWelcomeButton = document.getElementById("close-welcome");
 const loadingScreen = document.getElementById("loading-screen");
-const clearChatbotBtn = document.getElementById("clear-chatbot-btn");
+const termsScreen = document.getElementById("terms-screen");
+const acceptTermsBtn = document.getElementById("accept-terms");
 
+const TERMS_COOKIE = "instonomo_terms_accepted"
+
+const clearChatbotBtn = document.getElementById("clear-chatbot-btn");
 const chatOutputAI = document.getElementById("chat-output-ai");
 const textInputAI = document.getElementById("text-input-ai");
 const micButtonAI = document.getElementById("mic-button-ai");
@@ -1312,7 +1317,6 @@ if (clearAIBtn) {
   });
 }
 
-
 function setCookie(name, value, days) {
   let expires = "";
   if (days) {
@@ -1323,7 +1327,6 @@ function setCookie(name, value, days) {
   document.cookie = name + "=" + (value || "") + expires + "; path=/";
 }
 
-
 function getCookie(name) {
   const nameEQ = name + "=";
   const ca = document.cookie.split(';');
@@ -1333,6 +1336,39 @@ function getCookie(name) {
     if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
   }
   return null;
+}
+
+function hasAcceptedTerms() {
+  return getCookie(TERMS_COOKIE) === "true";
+}
+
+function showTermsGateIfNeeded() {
+  if (!termsScreen) return true;      
+  if (hasAcceptedTerms()) return true; 
+
+  termsScreen.style.display = "flex";
+  termsScreen.setAttribute("aria-hidden", "false");
+  return false; // block
+}
+
+function hideTermsGate() {
+  if (!termsScreen) return;
+  termsScreen.style.display = "none";
+  termsScreen.setAttribute("aria-hidden", "true");
+}
+
+function showWelcomeIfNeeded() {
+  if (!welcomeScreen) return;
+  if (getCookie("firstTime") === "false") return;
+  welcomeScreen.style.display = "flex";
+}
+
+if (acceptTermsBtn) {
+  acceptTermsBtn.addEventListener("click", () => {
+    setCookie(TERMS_COOKIE, "true", 365);
+    hideTermsGate();
+    showWelcomeIfNeeded();
+  });
 }
 
 const navButtons = document.querySelectorAll('.nav button');
@@ -1468,17 +1504,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
+if (closeWelcomeButton && welcomeScreen) {
   closeWelcomeButton.addEventListener('click', () => {
     welcomeScreen.style.display = 'none';
     setCookie('firstTime', 'false', 365);
   });
+}
 
+
+setTimeout(() => {
+  loadingScreen.classList.add('fade-out');
   setTimeout(() => {
-    loadingScreen.classList.add('fade-out');
-    setTimeout(() => {
-      loadingScreen.style.display = 'none';
-    }, 500);
-  }, 2000);
+    loadingScreen.style.display = 'none';
+
+    const okToContinue = showTermsGateIfNeeded();
+    if (okToContinue) {
+      showWelcomeIfNeeded();
+    }
+  }, 500);
+}, 2000);
+
 
   showSection('instonomo');
   if (userProfile.name) {
