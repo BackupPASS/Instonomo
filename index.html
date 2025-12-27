@@ -19,21 +19,26 @@
     </svg>
   </div>
 
-  <div id="welcome-screen">
-    <div class="welcome-content">
-      <h1>Welcome to Instonomo</h1>
-      <p>Quick guide before you start:</p>
-      <ul>
-        <li>Type your message in the box below and press Enter or the send button.</li>
-        <li>Use the mic button to speak instead of typing (if your browser supports it).</li>
-        <li>Use the speaker button to mute or unmute Instonomo’s voice replies.</li>
-      </ul>
-      <p>Instonomo is a basic rules-based chatbot made by PlingifyPlug. It may not always get things perfect, but it will try to help.</p>
-      <button id="close-welcome">
-        <span>Start chatting</span>
+<div id="terms-screen" aria-hidden="true">
+  <div class="terms-card" role="dialog" aria-modal="true" aria-labelledby="terms-title">
+    <span class="terms-title" id="terms-title">Terms agreement</span>
+
+    <p class="terms-desc">
+      To use <strong>Instonomo (ChatBot)</strong> or <strong>InstonomoAI (AI)</strong>, you must agree to
+      PlingifyPlug’s terms &amp; privacy policy.
+    </p>
+
+    <div class="terms-actions">
+      <a class="terms-link" href="https://plingifyplug.com/privacy" target="_blank" rel="noopener">
+        View terms &amp; privacy policy
+      </a>
+
+      <button id="accept-terms" class="terms-accept" type="button">
+        Okay
       </button>
     </div>
   </div>
+</div>
 
   <div class="shade"></div>
 
