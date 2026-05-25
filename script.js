@@ -330,7 +330,7 @@ async function submitBanAppeal(email, reason, deviceState, recentLogs) {
 
 function showDeviceBannedScreen() {
   document.body.innerHTML =
-    "PlingifyPlug AntiMalware has decided to ban this device.<br><br>Loading ban details…";
+    "PlingifyPlug SafeGuard has decided to ban this device.<br><br>Loading ban details…";
 
   document.body.style =
     "margin:20px;font-family:system-ui, sans-serif;background:#ffffff;color:#000000;";
