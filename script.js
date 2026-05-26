@@ -1635,3 +1635,40 @@ function applyVintiEmbedMode() {
 }
 
 applyVintiEmbedMode();
+
+
+const popup = document.getElementById("support-popup");
+const closeBtn = document.getElementById("close-support-popup");
+
+// show popup on load (you can control timing)
+window.addEventListener("load", () => {
+  setTimeout(() => {
+    popup.style.display = "flex";
+    popup.setAttribute("aria-hidden", "false");
+  }, 800); // slight delay for polish
+});
+
+closeBtn.addEventListener("click", () => {
+  popup.style.display = "none";
+  popup.setAttribute("aria-hidden", "true");
+});
+
+document.querySelectorAll("button:not(.nav-btn), .btn, .icon-btn").forEach(btn => {
+  btn.classList.add("ripple");
+
+  btn.addEventListener("click", function (e) {
+    const circle = document.createElement("span");
+    circle.classList.add("ripple-effect");
+
+    const rect = this.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+
+    circle.style.width = circle.style.height = size + "px";
+    circle.style.left = (e.clientX - rect.left - size / 2) + "px";
+    circle.style.top = (e.clientY - rect.top - size / 2) + "px";
+
+    this.appendChild(circle);
+
+    setTimeout(() => circle.remove(), 500);
+  });
+});
